@@ -1,0 +1,2 @@
+rootProject.name = "RadiusChat"
+include ':app'

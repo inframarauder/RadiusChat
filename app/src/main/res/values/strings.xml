@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">RadiusChat</string>
+    <string name="text_field">Your location shall appear here...</string>
+</resources>

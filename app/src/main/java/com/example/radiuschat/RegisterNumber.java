@@ -27,7 +27,6 @@ public class RegisterNumber extends AppCompatActivity {
         //after success, save to shared preference:
         SharedPreferences pref = getSharedPreferences("com.example.radiuschat.users", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = pref.edit();
-        editor.putBoolean("isRegistered",true);
         editor.putString("phoneNumber",phoneNumber);
         editor.apply();
 

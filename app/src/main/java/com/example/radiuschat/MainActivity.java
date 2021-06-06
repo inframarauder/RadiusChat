@@ -1,5 +1,6 @@
 package com.example.radiuschat;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
@@ -17,11 +18,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.radiuschat.utils.User;
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import org.jetbrains.annotations.NotNull;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -57,24 +66,34 @@ public class MainActivity extends AppCompatActivity {
     private void sendLocationToFirebase(){
         //create fused location client
         client = LocationServices.getFusedLocationProviderClient(this);
+        CancellationTokenSource cts = new CancellationTokenSource(); //cancellation token needed for getCurrentLocation method
+
 
         //fetch last location using the client and write to firebase
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
             if (getApplicationContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                client.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if (location != null) {
-                            double lat = location.getLatitude();
-                            double lon = location.getLongitude();
 
-                            user.setLat(lat);
-                            user.setLon(lon);
+                client.getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY,cts.getToken()).addOnSuccessListener(location -> {
+                    if (location != null) {
+                        double lat = location.getLatitude();
+                        double lon = location.getLongitude();
 
-                            Log.d("user",user.getPhoneNumber() + "," + user.getLat()+","+user.getLon());
+                        //write to firebase using GeoFire :
+                        FirebaseDatabase db = FirebaseDatabase.getInstance();
+                        DatabaseReference locationRef = db.getReference("locations");
+                        GeoFire geoFire = new GeoFire(locationRef);
 
-                            //update location of user in firebase here...
-                        }
+                        geoFire.setLocation(user.getPhoneNumber(), new GeoLocation(lat, lon), (key, error) -> {
+                            if(error != null){
+                                Log.d("error_in_geofire",error.getDetails());
+                            }else{
+                                Log.d("success_geofire","Location written to firebase successfully!");
+                            }
+                        });
+
+                    }else {
+                        Log.d("coordinates", "location is null");
                     }
                 });
             } else {

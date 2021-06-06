@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -20,6 +21,8 @@ import android.widget.Toast;
 import com.example.radiuschat.utils.User;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQuery;
+import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
@@ -46,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
         //access registered user from shared pref:
         user = getRegisteredUser();
         if(user != null){
-            //stay on this activity and work with location
-            sendLocationToFirebase();
+            //if user is registered, the following method retrieves current location, writes it to firebase and queries for all nearby users
+            performLocationOps();
         }else{
             //send to registration activity
             startActivity(new Intent(this,RegisterNumber.class));
@@ -56,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
     private User getRegisteredUser(){
         SharedPreferences pref = getSharedPreferences("com.example.radiuschat.users", Context.MODE_PRIVATE);
         String phoneNumber = pref.getString("phoneNumber","");
@@ -63,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         return phoneNumber.length() == 10?new User(phoneNumber) : null;
     }
 
-    private void sendLocationToFirebase(){
+    private void performLocationOps(){
         //create fused location client
         client = LocationServices.getFusedLocationProviderClient(this);
         CancellationTokenSource cts = new CancellationTokenSource(); //cancellation token needed for getCurrentLocation method
@@ -86,9 +90,40 @@ public class MainActivity extends AppCompatActivity {
 
                         geoFire.setLocation(user.getPhoneNumber(), new GeoLocation(lat, lon), (key, error) -> {
                             if(error != null){
-                                Log.d("error_in_geofire",error.getDetails());
+                                Log.d("error_geofire",error.getDetails());
                             }else{
-                                Log.d("success_geofire","Location written to firebase successfully!");
+                                //run geoQuery:
+                                GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(lat,lon),25);
+                                geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+                                    @Override
+                                    public void onKeyEntered(String key, GeoLocation location) {
+                                        Log.d("geoQuery",String.format("Key %s entered the search area at [%f,%f]", key, location.latitude, location.longitude));
+
+                                    }
+
+                                    @Override
+                                    public void onKeyExited(String key) {
+                                        Log.d("geoQuery",String.format("Key %s exited the search area", key));
+
+                                    }
+
+                                    @Override
+                                    public void onKeyMoved(String key, GeoLocation location) {
+                                        Log.d("geoQuery",String.format("Key %s moved within the search area at [%f,%f]", key, location.latitude, location.longitude));
+
+                                    }
+
+                                    @Override
+                                    public void onGeoQueryReady() {
+                                        Log.d("geoQuery","All initial data has been loaded and events have been fired!");
+
+                                    }
+
+                                    @Override
+                                    public void onGeoQueryError(DatabaseError error) {
+                                        Log.d("geoQuery","There was an error with this query: " + error);
+                                    }
+                                });
                             }
                         });
 

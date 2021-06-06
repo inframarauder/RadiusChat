@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "181550381580",
+    "project_id": "radiuschat-98d08",
+    "storage_bucket": "radiuschat-98d08.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:181550381580:android:f1dfeb59f41630e4b58c29",
+        "android_client_info": {
+          "package_name": "com.example.radiuschat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "181550381580-q1nmtgbpvu5ks2vrdn9jgnmd6qo9km3m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA93fhQpclNu1K8ecp9_nit07SIIASOTmk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "181550381580-q1nmtgbpvu5ks2vrdn9jgnmd6qo9km3m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         }else{
             //send to registration activity
             startActivity(new Intent(this,RegisterNumber.class));
+            finish();
         }
 
     }
@@ -80,6 +81,16 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
             }
         }
+    }
+
+    public void logoutUser(View v){
+        SharedPreferences pref = getSharedPreferences("com.example.radiuschat.users", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = pref.edit();
+        editor.clear();
+        editor.apply();
+
+        startActivity(new Intent(this,RegisterNumber.class));
+        finish();
     }
 
 }

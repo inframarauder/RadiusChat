@@ -10,6 +10,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 public class RegisterNumber extends AppCompatActivity {
 
     @Override
@@ -22,7 +25,11 @@ public class RegisterNumber extends AppCompatActivity {
     public void handleRegistrationClick(View v){
         String phoneNumber =((EditText)findViewById(R.id.editTextPhone)).getText().toString();
 
-        //implement firebase data saving here...
+        //save to firebase...
+        FirebaseDatabase db = FirebaseDatabase.getInstance();
+        DatabaseReference root = db.getReference();
+        root.setValue(phoneNumber);
+
 
         //after success, save to shared preference:
         SharedPreferences pref = getSharedPreferences("com.example.radiuschat.users", Context.MODE_PRIVATE);

@@ -2,4 +2,5 @@
     <string name="app_name">RadiusChat</string>
     <string name="phone_no_hint">Enter Phone No...</string>
     <string name="register_btn">Register</string>
+    <string name="logout_btn">Logout</string>
 </resources>

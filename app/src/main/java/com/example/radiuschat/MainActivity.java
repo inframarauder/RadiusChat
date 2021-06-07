@@ -27,18 +27,25 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public class MainActivity extends AppCompatActivity {
 
     private FusedLocationProviderClient client;
-    private User user;
+    String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +54,12 @@ public class MainActivity extends AppCompatActivity {
         setTitle("Welcome To Radius Chat!");
 
         //access registered user from shared pref:
-        user = getRegisteredUser();
-        if(user != null){
-            //if user is registered, the following method retrieves current location, writes it to firebase and queries for all nearby users
+        userId = getRegisteredUserId();
+        if(userId.length() > 0){
+            /**
+             * if user is registered, the following method retrieves current location,
+             * writes it to firebase and queries for all nearby users
+             */
             performLocationOps();
         }else{
             //send to registration activity
@@ -60,11 +70,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private User getRegisteredUser(){
+    private String getRegisteredUserId(){
         SharedPreferences pref = getSharedPreferences("com.example.radiuschat.users", Context.MODE_PRIVATE);
-        String phoneNumber = pref.getString("phoneNumber","");
+        String userId = pref.getString("userId","");
 
-        return phoneNumber.length() == 10?new User(phoneNumber) : null;
+        return userId;
     }
 
     private void performLocationOps(){
@@ -73,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
         CancellationTokenSource cts = new CancellationTokenSource(); //cancellation token needed for getCurrentLocation method
 
 
-        //fetch last location using the client and write to firebase
+        //fetch current location using the client and write to firebase
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 
             if (getApplicationContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -88,45 +98,13 @@ public class MainActivity extends AppCompatActivity {
                         DatabaseReference locationRef = db.getReference("locations");
                         GeoFire geoFire = new GeoFire(locationRef);
 
-                        geoFire.setLocation(user.getPhoneNumber(), new GeoLocation(lat, lon), (key, error) -> {
-                            if(error != null){
-                                Log.d("error_geofire",error.getDetails());
-                            }else{
-                                //run geoQuery:
-                                GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(lat,lon),25);
-                                geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
-                                    @Override
-                                    public void onKeyEntered(String key, GeoLocation location) {
-                                        Log.d("geoQuery",String.format("Key %s entered the search area at [%f,%f]", key, location.latitude, location.longitude));
-
-                                    }
-
-                                    @Override
-                                    public void onKeyExited(String key) {
-                                        Log.d("geoQuery",String.format("Key %s exited the search area", key));
-
-                                    }
-
-                                    @Override
-                                    public void onKeyMoved(String key, GeoLocation location) {
-                                        Log.d("geoQuery",String.format("Key %s moved within the search area at [%f,%f]", key, location.latitude, location.longitude));
-
-                                    }
-
-                                    @Override
-                                    public void onGeoQueryReady() {
-                                        Log.d("geoQuery","All initial data has been loaded and events have been fired!");
-
-                                    }
-
-                                    @Override
-                                    public void onGeoQueryError(DatabaseError error) {
-                                        Log.d("geoQuery","There was an error with this query: " + error);
-                                    }
-                                });
+                        geoFire.setLocation(userId, new GeoLocation(lat, lon), (key, error) -> {
+                            if (error != null) {
+                                Log.d("error_geofire", error.getDetails());
+                            } else {
+                                Log.d("key",key);
                             }
                         });
-
                     }else {
                         Log.d("coordinates", "location is null");
                     }
@@ -136,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
 
     public void logoutUser(View v){
         SharedPreferences pref = getSharedPreferences("com.example.radiuschat.users", Context.MODE_PRIVATE);

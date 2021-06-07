@@ -53,7 +53,7 @@ public class RegisterNumber extends AppCompatActivity {
             String userId;
 
             if(task.isSuccessful()){
-                Map<String,User> result = (Map<String,User>) task.getResult().getValue();
+                Map<String,Map> result = (Map<String,Map>) task.getResult().getValue();
 
                 if(result != null){
                     //if user exists, get userId

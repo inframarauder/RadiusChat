@@ -1,6 +1,7 @@
 package com.example.radiuschat;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
@@ -35,10 +36,12 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -102,7 +105,10 @@ public class MainActivity extends AppCompatActivity {
                             if (error != null) {
                                 Log.d("error_geofire", error.getDetails());
                             } else {
-                                Log.d("key",key);
+                                //run geo query on current location
+                                GeoLocation geoLocation = new GeoLocation(lat,lon);
+                                double radius = 5.0;
+                                runGeoQuery(geoFire,geoLocation,radius);
                             }
                         });
                     }else {
@@ -113,6 +119,74 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
             }
         }
+    }
+
+    private void runGeoQuery(GeoFire geoFire,GeoLocation geoLocation,double radius) {
+        GeoQuery geoQuery = geoFire.queryAtLocation(geoLocation,radius);
+        ArrayList<User> usersInRadius = new ArrayList<>();
+
+
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                //exclude currently logged in user:
+                if(!userId.equalsIgnoreCase(key)){
+                    //fetch user object from db and insert into array list:
+                    DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users");
+                    Query userQuery = userRef.orderByKey().equalTo(key);
+                    userQuery.get().addOnCompleteListener(task -> {
+                        if(task.isSuccessful()){
+                            Map<String,Map> result = (Map<String,Map>) task.getResult().getValue();
+                            Map<String,String> userMap = result.values().stream().findFirst().get();
+
+                            usersInRadius.add(new User(userMap.get("phoneNumber"),userMap.get("name")));
+                            renderUsersInRadius(usersInRadius);
+                        }else{
+                            Log.e("firebase_error","error in querying for user with given Id", task.getException());
+                        }
+                    });
+                }
+            }
+
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public void onKeyExited(String key) {
+                //fetch user object from db and remove from array list:
+                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users");
+                Query userQuery = userRef.orderByKey().equalTo(key);
+                userQuery.get().addOnCompleteListener(task -> {
+                    if(task.isSuccessful()){
+                        Map<String,Map> result = (Map<String,Map>) task.getResult().getValue();
+                        Map<String,String> userMap = result.values().stream().findFirst().get();
+
+                        usersInRadius.remove(new User(userMap.get("phoneNumber"),userMap.get("name")));
+                        renderUsersInRadius(usersInRadius);
+                    }else{
+                        Log.e("firebase_error","error in querying for user with given Id", task.getException());
+                    }
+                });
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+                //do nothing
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+                Log.d("geoQueryReady","GeoQuery is ready");
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+                Log.e("geoQueryError","There was an error in performing geo query", error.toException());
+            }
+        });
+    }
+
+    private void renderUsersInRadius(ArrayList<User> usersInRadius) {
+        Log.d("usersInRadius", Arrays.toString(usersInRadius.toArray()));
     }
 
 
